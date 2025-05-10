@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
-import './App.css';
+import { useEffect, useState } from 'react';
 
 function App() {
-  const [time, setTime] = useState(0);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+        const [time, setTime] = useState(0);
   const [running, setRunning] = useState(false);
   const [laps, setLaps] = useState([]);
   const timerRef = useRef(null);
@@ -51,8 +52,32 @@ function App() {
     const milliseconds = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
     return `${minutes}:${seconds}:${milliseconds}`;
   };
+  
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();  
+      setDeferredPrompt(e); 
+      setShowInstallBtn(true); 
+    });
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('App installed');
+        } else {
+          console.log('App installation rejected');
+        }
+        setDeferredPrompt(null);
+        setShowInstallBtn(false);
+      });
+    }
+  };
 
   return (
+    <div>
     <div className="App" style={{ textAlign: 'center', marginTop: '50px' }}>
       <h1>Stopwatch</h1>
       <div className="stopwatch" style={{ fontSize: '2em', marginBottom: '20px' }}>
@@ -69,6 +94,8 @@ function App() {
           <li key={index}>Lap {index + 1}: {formatTime(lapTime)}</li>
         ))}
       </ul>
+    </div>
+      {showInstallBtn && <button onClick={handleInstallClick}>Install App</button>}
     </div>
   );
 }
